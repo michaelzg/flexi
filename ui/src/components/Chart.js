@@ -166,7 +166,7 @@ const Chart = ({ timestamps, prices, isLoading }) => {
           },
           tooltip: {
             enabled: false,
-            external: externalTooltipHandler(tooltipRef.current)
+            external: externalTooltipHandler(tooltipRef.current, false)
           },
           annotation: {
             annotations: {

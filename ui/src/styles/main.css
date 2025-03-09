@@ -14,6 +14,8 @@
     --pastel-yellow: #f0e0a2;
     --pastel-red: #f0b5b5;
     --pastel-orange: #f0cba2;
+    --historical-purple: rgba(205, 180, 219, 0.7);
+    --historical-orange: rgba(255, 200, 150, 0.7);
 }
 
 * {
@@ -33,18 +35,70 @@ body {
 }
 
 .header {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    padding: 1.5rem 2rem;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    padding: 1rem 2rem;
     width: 100%;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-title {
+    display: flex;
+    flex-direction: column;
 }
 
 .header h1 {
     font-family: 'Poppins', sans-serif;
     font-weight: 600;
-    font-size: 2rem;
+    font-size: 1.5rem;
     margin: 0;
+    color: var(--primary-color);
+}
+
+.header-subtitle {
+    font-size: 0.9rem;
+    color: var(--light-text);
+    font-weight: 500;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+    justify-content: center;
+}
+
+.header-metadata {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.header-metadata-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.header-metadata-label {
+    font-weight: 600;
+    color: var(--light-text);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.header-metadata-value {
+    font-size: 0.8rem;
+    font-weight: 500;
 }
 
 .container {
@@ -52,39 +106,36 @@ body {
     padding: 0;
 }
 
-.metadata-container {
-    display: flex;
-    flex-wrap: wrap;
-    background-color: white;
-    padding: 1rem 2rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.metadata-item {
+/* Date Picker in Header */
+.header .date-picker-row {
     display: flex;
     align-items: center;
-    margin-right: 1.5rem;
-    margin-bottom: 0.5rem;
+    gap: 0.5rem;
 }
 
-.metadata-label {
-    font-weight: 600;
-    color: var(--light-text);
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-right: 0.5rem;
+.header .date-picker-wrapper {
+    width: 110px;
 }
 
-.metadata-value {
-    font-size: 0.9rem;
-    font-weight: 500;
+.header .date-input {
+    padding: 0.3rem;
+    font-size: 0.75rem;
 }
 
-.date-picker-container {
+.header .update-button {
+    height: 28px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+}
+
+.header .preset-buttons {
     display: flex;
-    align-items: center;
-    margin-left: auto;
+    margin-left: 0.3rem;
+}
+
+.header .preset-button {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
 }
 
 .date-picker-row {
@@ -159,9 +210,45 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     margin: 0;
     width: 100%;
-    height: calc(100vh - 250px);
-    min-height: 500px;
+    height: calc(50vh - 125px);
+    min-height: 400px;
     position: relative;
+}
+
+.historical-usage-chart {
+    margin-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.chart-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.display-mode-button {
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.display-mode-button:hover {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.display-mode-button.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
 }
 
 .error {
@@ -184,7 +271,8 @@ body {
 }
 
 /* Chart Tooltip Custom Styling */
-#chart-tooltip {
+#chart-tooltip, 
+#historical-chart-tooltip {
     opacity: 0;
     position: absolute;
     background: rgba(255, 255, 255, 0.95);
@@ -223,6 +311,14 @@ body {
 
 .positive-value {
     color: var(--primary-color);
+}
+
+.usage-value {
+    color: rgba(186, 156, 214, 1);
+}
+
+.cost-value {
+    color: rgba(255, 170, 120, 1);
 }
 
 /* Loading spinner */
@@ -295,6 +391,16 @@ body {
     border: 1px solid rgba(76, 175, 80, 1);
 }
 
+.legend-usage {
+    background-color: var(--historical-purple);
+    border: 1px solid rgba(186, 156, 214, 1);
+}
+
+.legend-cost {
+    background-color: var(--historical-orange);
+    border: 1px solid rgba(255, 170, 120, 1);
+}
+
 .legend-current {
     width: 16px;
     height: 2px;
@@ -319,6 +425,107 @@ body {
 
 .legend-current::after {
     right: 0;
+}
+
+/* CSV Upload Styling */
+.csv-upload-container {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.csv-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.csv-upload-label {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    text-align: center;
+    white-space: nowrap;
+    height: 32px;
+    line-height: 24px;
+}
+
+.header .csv-upload-label {
+    height: 28px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    line-height: 20px;
+}
+
+.csv-upload-info-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--light-text);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.csv-upload-tooltip {
+    position: absolute;
+    top: 35px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.header .csv-upload-info-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+}
+
+.csv-upload-label:hover {
+    background-color: var(--secondary-color);
+}
+
+.csv-upload-input {
+    display: none;
+}
+
+.csv-upload-loading {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: var(--light-text);
+}
+
+.csv-upload-error {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: var(--danger-color);
+    background-color: rgba(244, 67, 54, 0.1);
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.historical-data-section {
+    padding: 0 2rem;
+    background-color: white;
 }
 
 /* Responsive adjustments */

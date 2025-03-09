@@ -20,7 +20,7 @@ API integration: https://api-calculate-docs.gridx.com/acgd/api-introduction-over
 
 Initial visualization
 
-![poc](docs/init-screenshot.png)
+![poc](docs/example.png)
 
 
 

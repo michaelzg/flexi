@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from './Header';
-import Metadata from './Metadata';
-import DatePicker from './DatePicker';
 import Chart from './Chart';
+import HistoricalUsageChart from './HistoricalUsageChart';
 import { fetchPricingData } from '../utils/apiService';
 import '../styles/main.css';
 
@@ -17,6 +16,7 @@ const App = () => {
     startDate: '',
     endDate: ''
   });
+  const [historicalUsageData, setHistoricalUsageData] = useState([]);
 
   // Parse URL parameters on component mount
   useEffect(() => {
@@ -78,18 +78,19 @@ const App = () => {
     await fetchData(startDate, endDate);
   };
 
+  const handleHistoricalDataParsed = (data) => {
+    // Filter to only include historical data
+    const historicalData = data.filter(item => item.isHistorical);
+    setHistoricalUsageData(historicalData);
+  };
+
   return (
     <div className="container">
-      <Header />
-      
-      <div className="metadata-container">
-        <Metadata />
-        <DatePicker 
-          onDateChange={handleDateChange}
-          initialStartDate={dateRange.startDate}
-          initialEndDate={dateRange.endDate}
-        />
-      </div>
+      <Header 
+        dateRange={dateRange}
+        onDateChange={handleDateChange}
+        onHistoricalDataParsed={handleHistoricalDataParsed}
+      />
       
       {isLoading && (
         <div className="loading" style={{ display: 'flex' }}>
@@ -109,6 +110,14 @@ const App = () => {
         prices={chartData.prices}
         isLoading={isLoading}
       />
+      
+      {historicalUsageData.length > 0 && (
+        <HistoricalUsageChart 
+          usageData={historicalUsageData}
+          timestamps={chartData.timestamps}
+          isLoading={false}
+        />
+      )}
     </div>
   );
 };
