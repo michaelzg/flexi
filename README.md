@@ -5,9 +5,9 @@ Inital proof of concept for managing
 The goal is to understand the forecasted hourly prices and compare
 it to my historical usage 1 year ago to ensure I maximize savings.
 
-API integration: https://api-calculate-docs.gridx.com/acgd/api-introduction-overview
+![poc](docs/example.png)
 
-## Pilot summary
+## PG&E Flex Hourly Pricing Key Points
 
 - This pilot runs from November 1, 2024, to December 31, 2027.
 - Electricity prices vary by hour. They are forecast seven days in advance and are set one day in advance. Final prices are set at 4 p.m. a day in advance.
@@ -16,13 +16,4 @@ API integration: https://api-calculate-docs.gridx.com/acgd/api-introduction-over
   - If you use more energy than your subscription quantity for an hour, the additional energy use will be charged at the dynamic price.
   - If you use less energy than your subscription quantity for an hour, you will be credited the difference at the dynamic hourly price.
 
-## PoC
-
-Initial visualization
-
-![poc](docs/example.png)
-
-
-
-
-
+API integration: https://api-calculate-docs.gridx.com/acgd/api-introduction-overview
