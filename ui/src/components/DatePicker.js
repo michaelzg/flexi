@@ -10,7 +10,7 @@ const DatePicker = ({ onDateChange, initialStartDate, initialEndDate }) => {
   const endPickerRef = useRef(null);
 
   useEffect(() => {
-    // Calculate default dates
+    // Calculate dates based on current date
     const now = new Date();
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
@@ -24,16 +24,16 @@ const DatePicker = ({ onDateChange, initialStartDate, initialEndDate }) => {
     const sevenDaysFromNow = new Date(now);
     sevenDaysFromNow.setDate(now.getDate() + 7);
 
-    // Initialize date pickers
+    // Initialize date pickers - always use yesterday and 2 days from now
     startPickerRef.current = flatpickr(startDateRef.current, {
       dateFormat: "Y-m-d",
-      defaultDate: initialStartDate || yesterday
+      defaultDate: yesterday
     });
     
     endPickerRef.current = flatpickr(endDateRef.current, {
       dateFormat: "Y-m-d",
-      defaultDate: initialEndDate || twoDaysFromNow,
-      minDate: initialStartDate || yesterday
+      defaultDate: twoDaysFromNow,
+      minDate: yesterday
     });
   
     // Update end date min date when start date changes

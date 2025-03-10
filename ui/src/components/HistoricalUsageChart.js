@@ -9,7 +9,7 @@ import { generateDayBackgrounds, externalTooltipHandler } from '../utils/chartUt
 // Register Chart.js plugins
 ChartJS.register(...registerables, ChartDataLabels, annotationPlugin);
 
-const HistoricalUsageChart = ({ usageData, timestamps, isLoading }) => {
+const HistoricalUsageChart = ({ usageData, timestamps, prices, isLoading, onBarSelect, selectedTimestamp }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
   const tooltipRef = useRef(null);
@@ -27,13 +27,13 @@ const HistoricalUsageChart = ({ usageData, timestamps, isLoading }) => {
         chartInstance.current.destroy();
       }
     };
-  }, [usageData, timestamps, isLoading]);
+  }, [usageData, timestamps, isLoading, selectedTimestamp]);
 
   useEffect(() => {
     if (usageData && usageData.length > 0 && timestamps && timestamps.length > 0 && !isLoading) {
       createChart();
     }
-  }, [displayMode, usageData, timestamps, isLoading]);
+  }, [displayMode, usageData, timestamps, isLoading, selectedTimestamp]);
 
   const createChart = () => {
     // Adjust timestamps to be exactly 1 year in the past
@@ -85,6 +85,40 @@ const HistoricalUsageChart = ({ usageData, timestamps, isLoading }) => {
     // Generate day background annotations
     const dayBackgrounds = generateDayBackgrounds(chartTimestamps);
     
+    // Create a selection highlight annotation if a timestamp is selected
+    let selectionHighlight = {};
+    if (selectedTimestamp) {
+      // We need to adjust the selected timestamp to be 1 year in the past
+      const pastSelectedTimestamp = moment(selectedTimestamp).subtract(1, 'year').toISOString();
+      
+      // Find the index of the selected timestamp in the historical data
+      const selectedIndex = chartTimestamps.findIndex(ts => 
+        moment(ts).isSame(moment(pastSelectedTimestamp), 'hour')
+      );
+      
+      if (selectedIndex !== -1) {
+        // Calculate the width of a single bar (approximate)
+        const barWidth = chartTimestamps.length > 1 
+          ? (new Date(chartTimestamps[1]).getTime() - new Date(chartTimestamps[0]).getTime()) 
+          : 3600000; // Default to 1 hour in milliseconds
+          
+        // Create a box annotation for the selected bar
+        selectionHighlight = {
+          selectionBox: {
+            type: 'box',
+            xMin: new Date(chartTimestamps[selectedIndex]).getTime() - (barWidth * 0.4),
+            xMax: new Date(chartTimestamps[selectedIndex]).getTime() + (barWidth * 0.4),
+            yMin: 'min',
+            yMax: 'max',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 0.6)',
+            borderWidth: 1,
+            drawTime: 'beforeDatasetsDraw'
+          }
+        };
+      }
+    }
+    
     // Destroy existing chart if it exists
     if (chartInstance.current) {
       chartInstance.current.destroy();
@@ -129,6 +163,34 @@ const HistoricalUsageChart = ({ usageData, timestamps, isLoading }) => {
             left: 10
           }
         },
+        onClick: (event, elements) => {
+          if (elements && elements.length > 0 && typeof onBarSelect === 'function') {
+            const index = elements[0].index;
+            const timestamp = chartTimestamps[index];
+            const usage = usageValues[index];
+            
+            // Find corresponding price from the price chart
+            // We need to adjust the timestamp to be 1 year in the future
+            const futureTimestamp = moment(timestamp).add(1, 'year').toISOString();
+            
+            // Find the corresponding price in the price chart timestamps
+            const priceIndex = timestamps.findIndex(ts => 
+              moment(ts).isSame(moment(futureTimestamp), 'hour')
+            );
+            
+            // If we found a matching price, pass it to the onBarSelect callback
+            if (priceIndex !== -1) {
+              onBarSelect(futureTimestamp, usage, prices[priceIndex]);
+            } else {
+              // If no matching price is found, don't update the what-this-means section
+              console.log("No matching price found for timestamp:", futureTimestamp);
+              return;
+            }
+          } else if (typeof onBarSelect === 'function') {
+            // Reset when clicking outside the bars
+            onBarSelect(null, null, null);
+          }
+        },
         scales: {
           x: {
             type: 'time',
@@ -161,7 +223,8 @@ const HistoricalUsageChart = ({ usageData, timestamps, isLoading }) => {
               callback: function(value, index, values) {
                 const date = moment(value);
                 return date.format('MMM D, hA');
-              }
+              },
+              color: '#000000' // High contrast black text
             }
           },
           y: {
@@ -192,8 +255,8 @@ const HistoricalUsageChart = ({ usageData, timestamps, isLoading }) => {
           title: {
             display: true,
             text: displayMode === 'usage' 
-              ? 'Historical Electricity Usage (kWh) - 1 Year Ago' 
-              : 'Historical Electricity Cost ($) - 1 Year Ago',
+              ? 'Last Year\'s Usage (kWh)' 
+              : 'Last Year\'s Cost ($)',
             font: {
               family: "'Poppins', sans-serif",
               size: 18,
@@ -206,11 +269,15 @@ const HistoricalUsageChart = ({ usageData, timestamps, isLoading }) => {
           },
           tooltip: {
             enabled: false,
-            external: externalTooltipHandler(tooltipRef.current, true)
+            external: (context) => {
+              externalTooltipHandler(tooltipRef.current, true)(context);
+              // We no longer update the What This Means section on hover
+            }
           },
           annotation: {
             annotations: {
-              ...dayBackgrounds
+              ...dayBackgrounds,
+              ...selectionHighlight
             }
           },
           datalabels: {
@@ -218,7 +285,7 @@ const HistoricalUsageChart = ({ usageData, timestamps, isLoading }) => {
           }
         },
         animation: {
-          duration: 1000,
+          duration: selectedTimestamp ? 0 : 1000, // Disable animation when selection changes
           easing: 'easeOutQuart'
         },
         hover: {

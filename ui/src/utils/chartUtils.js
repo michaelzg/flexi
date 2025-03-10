@@ -74,9 +74,21 @@ export const externalTooltipHandler = (tooltipEl, isHistorical = false) => (cont
 
   // Set Text
   if (tooltip.body) {
-    const label = chart.data.labels[tooltip.dataPoints[0].dataIndex];
+    const dataIndex = tooltip.dataPoints[0].dataIndex;
+    const label = chart.data.labels[dataIndex];
     const formattedDate = moment(label).format('MMM D, YYYY');
     const formattedTime = moment(label).format('h:mm A');
+    const hour = moment(label).hour();
+    const isDaytime = hour >= 6 && hour < 18; // 6am-6pm is daytime
+    const timeIcon = isDaytime ? '☀️' : '🌙'; // Sun icon for day, moon icon for night
+    
+    // Check if this is one of the best price hours
+    let isBestPrice = false;
+    if (!isHistorical) {
+      // For price chart, check if this is one of the lowest price indices
+      const { daytimeLowIndices, nighttimeLowIndices } = findLowestPriceIndicesPerDay(chart.data.labels, chart.data.datasets[0].data, 2);
+      isBestPrice = daytimeLowIndices.includes(dataIndex) || nighttimeLowIndices.includes(dataIndex);
+    }
     
     let tooltipContent = '';
     
@@ -85,26 +97,26 @@ export const externalTooltipHandler = (tooltipEl, isHistorical = false) => (cont
       const usageDataset = chart.data.datasets.find(d => d.label.includes('Usage'));
       const costDataset = chart.data.datasets.find(d => d.label.includes('Cost'));
       
-      const usageIndex = tooltip.dataPoints[0].dataIndex;
-      const usageValue = usageDataset ? usageDataset.data[usageIndex] : null;
-      const costValue = costDataset ? costDataset.data[usageIndex] : null;
+      const usageValue = usageDataset ? usageDataset.data[dataIndex] : null;
+      const costValue = costDataset ? costDataset.data[dataIndex] : null;
       
       tooltipContent = `
         <div class="tooltip-title">${formattedDate}</div>
         ${usageValue !== null ? `<div class="tooltip-value usage-value">${usageValue.toFixed(2)} kWh</div>` : ''}
         ${costValue !== null ? `<div class="tooltip-value cost-value">$${costValue.toFixed(2)}</div>` : ''}
-        <div class="tooltip-time">${formattedTime}</div>
+        <div class="tooltip-time">${timeIcon} ${formattedTime}</div>
       `;
     } else {
       // Price chart (single dataset)
-      const dataPoint = chart.data.datasets[0].data[tooltip.dataPoints[0].dataIndex];
+      const dataPoint = chart.data.datasets[0].data[dataIndex];
       const isNegative = dataPoint < 0;
       const valueClass = isNegative ? 'negative-value' : 'positive-value';
       
       tooltipContent = `
         <div class="tooltip-title">${formattedDate}</div>
         <div class="tooltip-value ${valueClass}">${(dataPoint * 100).toFixed(2)} ¢/kWh</div>
-        <div class="tooltip-time">${formattedTime}</div>
+        <div class="tooltip-time">${timeIcon} ${formattedTime}</div>
+        ${isBestPrice ? `<div class="tooltip-best-price">${timeIcon} best price</div>` : ''}
       `;
     }
     
@@ -177,4 +189,83 @@ export const externalTooltipHandler = (tooltipEl, isHistorical = false) => (cont
 // Function to format date as YYYYMMDD for API
 export const formatDateForAPI = (dateString) => {
   return dateString.replace(/-/g, '');
+};
+
+// Function to find the N lowest price indices for each day, separated by day and night
+export const findLowestPriceIndicesPerDay = (timestamps, prices, count = 2) => {
+  if (!timestamps || !prices || timestamps.length === 0 || prices.length === 0) {
+    return {
+      lowestIndices: [],
+      daytimeLowIndices: [],
+      nighttimeLowIndices: []
+    };
+  }
+  
+  // Group timestamps and prices by day
+  const dayGroups = {};
+  
+  timestamps.forEach((timestamp, index) => {
+    const date = moment(timestamp).format('YYYY-MM-DD');
+    
+    if (!dayGroups[date]) {
+      dayGroups[date] = {
+        date,
+        indices: [],
+        prices: []
+      };
+    }
+    
+    dayGroups[date].indices.push(index);
+    dayGroups[date].prices.push(prices[index]);
+  });
+  
+  // Find the lowest price indices for each day, separated by daytime and nighttime
+  let lowestIndices = [];
+  let daytimeLowIndices = [];
+  let nighttimeLowIndices = [];
+  
+  Object.values(dayGroups).forEach(day => {
+    // Create array of {index, price, hour, isDaytime} objects for this day
+    const priceObjects = day.prices.map((price, i) => {
+      const timestamp = timestamps[day.indices[i]];
+      const hour = moment(timestamp).hour();
+      const isDaytime = hour >= 6 && hour < 18; // 6am-6pm is daytime
+      return {
+        originalIndex: day.indices[i],
+        price,
+        hour,
+        isDaytime
+      };
+    });
+    
+    // Separate daytime and nighttime prices
+    const daytimePrices = priceObjects.filter(obj => obj.isDaytime);
+    const nighttimePrices = priceObjects.filter(obj => !obj.isDaytime);
+    
+    // Sort daytime prices by price (ascending)
+    daytimePrices.sort((a, b) => a.price - b.price);
+    
+    // Sort nighttime prices by price (ascending)
+    nighttimePrices.sort((a, b) => a.price - b.price);
+    
+    // Take the lowest daytime price
+    if (daytimePrices.length > 0) {
+      const lowestDaytimePrice = daytimePrices[0];
+      lowestIndices.push(lowestDaytimePrice.originalIndex);
+      daytimeLowIndices.push(lowestDaytimePrice.originalIndex);
+    }
+    
+    // Take the lowest nighttime price
+    if (nighttimePrices.length > 0) {
+      const lowestNighttimePrice = nighttimePrices[0];
+      lowestIndices.push(lowestNighttimePrice.originalIndex);
+      nighttimeLowIndices.push(lowestNighttimePrice.originalIndex);
+    }
+  });
+  
+  return {
+    lowestIndices,
+    daytimeLowIndices,
+    nighttimeLowIndices
+  };
 };
