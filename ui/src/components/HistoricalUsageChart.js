@@ -27,12 +27,6 @@ const HistoricalUsageChart = ({ usageData, timestamps, prices, isLoading, onBarS
         chartInstance.current.destroy();
       }
     };
-  }, [usageData, timestamps, isLoading, selectedTimestamp]);
-
-  useEffect(() => {
-    if (usageData && usageData.length > 0 && timestamps && timestamps.length > 0 && !isLoading) {
-      createChart();
-    }
   }, [displayMode, usageData, timestamps, isLoading, selectedTimestamp]);
 
   const createChart = () => {
