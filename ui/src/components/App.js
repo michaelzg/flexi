@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Header from './Header';
 import Chart from './Chart';
 import HistoricalUsageChart from './HistoricalUsageChart';
@@ -17,12 +17,15 @@ const App = () => {
     startDate: '',
     endDate: ''
   });
+  const initialFetchDone = useRef(false);
   const [historicalUsageData, setHistoricalUsageData] = useState([]);
   const [selectedData, setSelectedData] = useState(null);
   const [selectedTimestamp, setSelectedTimestamp] = useState(null);
 
   // Initialize with today's date and 2 days from now on component mount
   useEffect(() => {
+    if (initialFetchDone.current) return;
+    
     // Always use yesterday's date and 2 days from now
     const now = new Date();
     const yesterday = new Date(now);
@@ -42,6 +45,7 @@ const App = () => {
     
     // Fetch data
     fetchData(initialStartDate, initialEndDate);
+    initialFetchDone.current = true;
     
     // Remove any URL parameters
     if (window.location.search) {
@@ -68,10 +72,14 @@ const App = () => {
     }
   };
 
-  const handleDateChange = async (startDate, endDate) => {
+  const handleDateChange = useCallback(async (startDate, endDate) => {
+    // Prevent unnecessary fetches if dates haven't changed
+    if (dateRange.startDate === startDate && dateRange.endDate === endDate) {
+      return;
+    }
     setDateRange({ startDate, endDate });
     await fetchData(startDate, endDate);
-  };
+  }, [dateRange]);
 
   const handleHistoricalDataParsed = (data) => {
     // Filter to only include historical data
