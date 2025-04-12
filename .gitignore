@@ -10,7 +10,7 @@ consumer/target/*
 
 # Node.js dependencies and build files
 node_modules/
-/build
+ui/build
 /dist
 /.pnp
 .pnp.js
