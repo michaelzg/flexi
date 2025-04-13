@@ -94,16 +94,19 @@ export const externalTooltipHandler = (tooltipEl, isHistorical = false) => (cont
     
     if (isHistorical) {
       // Historical usage chart (multiple datasets)
-      const usageDataset = chart.data.datasets.find(d => d.label.includes('Usage'));
+      const usageDataset = chart.data.datasets.find(d => d.label.includes('Usage') && !d.label.includes('Baseline'));
       const costDataset = chart.data.datasets.find(d => d.label.includes('Cost'));
+      const baselineDataset = chart.data.datasets.find(d => d.label.includes('Baseline') || d.label.includes('Subscription'));
       
       const usageValue = usageDataset ? usageDataset.data[dataIndex] : null;
       const costValue = costDataset ? costDataset.data[dataIndex] : null;
+      const baselineValue = baselineDataset ? baselineDataset.data[dataIndex] : null;
       
       tooltipContent = `
         <div class="tooltip-title">${formattedDate}</div>
         ${usageValue !== null ? `<div class="tooltip-value usage-value">${usageValue.toFixed(2)} kWh</div>` : ''}
         ${costValue !== null ? `<div class="tooltip-value cost-value">$${costValue.toFixed(2)}</div>` : ''}
+        ${baselineValue !== null ? `<div class="tooltip-value baseline-value">${baselineValue.toFixed(2)} kWh</div>` : ''}
         <div class="tooltip-time">${timeIcon} ${formattedTime}</div>
       `;
     } else {

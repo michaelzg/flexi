@@ -228,6 +228,12 @@ body {
     margin-bottom: 15px;
 }
 
+.display-mode-button-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .display-mode-button {
     background-color: var(--background-color);
     border: 1px solid var(--border-color);
@@ -250,6 +256,37 @@ body {
     background-color: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
+}
+
+.info-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: var(--light-text);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.info-tooltip {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    font-size: 0.8rem;
+    line-height: 1.4;
 }
 
 .error {
@@ -333,6 +370,10 @@ body {
 
 .cost-value {
     color: rgba(255, 170, 120, 1);
+}
+
+.baseline-value {
+    color: rgba(50, 205, 50, 1);
 }
 
 /* Loading spinner */
