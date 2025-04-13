@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Header from './Header';
 import Chart from './Chart';
 import HistoricalUsageChart from './HistoricalUsageChart';
+import BaselineUsageChart from './BaselineUsageChart';
 import WhatThisMeans from './WhatThisMeans';
 import { fetchPricingData } from '../utils/apiService';
 import '../styles/main.css';
@@ -213,6 +214,14 @@ const App = () => {
           selectedTimestamp={selectedTimestamp}
         />
       )}
+      
+      <BaselineUsageChart 
+        historicalUsageData={historicalUsageData}
+        timestamps={chartData.timestamps}
+        isLoading={isLoading}
+        onBarSelect={handleBarSelect}
+        selectedTimestamp={selectedTimestamp}
+      />
     </div>
   );
 };

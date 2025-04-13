@@ -215,7 +215,8 @@ body {
     position: relative;
 }
 
-.historical-usage-chart {
+.historical-usage-chart,
+.baseline-usage-chart {
     margin-top: 20px;
     border-top: 1px solid var(--border-color);
 }
@@ -272,7 +273,8 @@ body {
 
 /* Chart Tooltip Custom Styling */
 #chart-tooltip, 
-#historical-chart-tooltip {
+#historical-chart-tooltip,
+.baseline-tooltip {
     opacity: 0;
     position: absolute;
     background: rgba(255, 255, 255, 0.95);
@@ -411,6 +413,11 @@ body {
 .legend-cost {
     background-color: var(--historical-orange);
     border: 1px solid rgba(255, 170, 120, 1);
+}
+
+.legend-baseline {
+    background-color: rgba(144, 238, 144, 0.7);
+    border: 1px solid rgba(50, 205, 50, 1);
 }
 
 .legend-current {
