@@ -57,22 +57,32 @@ const SavingsChart = ({
       return itemTime >= startTime && itemTime <= endTime;
     });
     
+    let contributingSavings = 0;
+    let contributingTouCost = 0;
+    let contributingHourCount = 0;
+    
+    filteredSavingsData.forEach((item, index) => {
+      const hasFlexUsage = (item.usageKWh || 0) > (item.subscriptionQuantity || 0);
+      if (hasFlexUsage) {
+        contributingHourCount++;
+        
+        // Calculate savings using the same method as tooltip for consistency
+        const baseRateUsage = Math.min(item.usageKWh || 0, item.subscriptionQuantity || 0);
+        const flexRateUsage = Math.max(0, (item.usageKWh || 0) - (item.subscriptionQuantity || 0));
+        const subscriptionCost = baseRateUsage * (item.touRate || 0);
+        const flexCost = flexRateUsage * (item.dynamicRate || 0);
+        const actualCost = subscriptionCost + flexCost;
+        const hourSavings = (item.touCost || 0) - actualCost;
+        
+        contributingSavings += hourSavings;
+        contributingTouCost += (item.touCost || 0);
+      }
+    });
+    
     // Only sum savings from hours where there was flex rate usage (usage above subscription)
-    const totalSavings = filteredSavingsData.reduce((sum, item) => {
-      const hasFlexUsage = (item.usageKWh || 0) > (item.subscriptionQuantity || 0);
-      return hasFlexUsage ? sum + (item.savings || 0) : sum;
-    }, 0);
-    
-    // Calculate total TOU cost for hours with flex usage only
-    const totalTouCost = filteredSavingsData.reduce((sum, item) => {
-      const hasFlexUsage = (item.usageKWh || 0) > (item.subscriptionQuantity || 0);
-      return hasFlexUsage ? sum + (item.touCost || 0) : sum;
-    }, 0);
-    
-    // Count hours with flex usage for debugging
-    const hoursWithFlexUsage = filteredSavingsData.filter(item => 
-      (item.usageKWh || 0) > (item.subscriptionQuantity || 0)
-    ).length;
+    const totalSavings = contributingSavings;
+    const totalTouCost = contributingTouCost;
+    const hoursWithFlexUsage = contributingHourCount;
     
     // Debug logging
     console.log('Savings calculation debug:', {
