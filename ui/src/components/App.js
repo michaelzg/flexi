@@ -246,6 +246,15 @@ const App = () => {
         selectedTimestamp={selectedTimestamp}
       />
       
+      <SavingsChart 
+        savingsData={savingsData}
+        timestamps={chartData.timestamps}
+        prices={chartData.prices}
+        onBarSelect={handleBarSelect}
+        selectedTimestamp={selectedTimestamp}
+        isLoading={isLoading}
+      />
+
       {historicalUsageData.length > 0 && (
         <HistoricalUsageChart 
           usageData={historicalUsageData}
@@ -256,15 +265,6 @@ const App = () => {
           selectedTimestamp={selectedTimestamp}
         />
       )}
-
-      <SavingsChart 
-        savingsData={savingsData}
-        timestamps={chartData.timestamps}
-        prices={chartData.prices}
-        onBarSelect={handleBarSelect}
-        selectedTimestamp={selectedTimestamp}
-        isLoading={isLoading}
-      />
     </div>
   );
 };
