@@ -22,6 +22,26 @@ const SavingsChart = ({
   const tooltipRef = useRef(null);
   const [hoveredData, setHoveredData] = useState(null);
 
+  // Get timeframe string for the displayed data
+  const getTimeframeString = () => {
+    if (!timestamps || timestamps.length === 0) return '';
+    
+    const startDate = moment(timestamps[0]);
+    const endDate = moment(timestamps[timestamps.length - 1]);
+    
+    // If same day, show just the date
+    if (startDate.isSame(endDate, 'day')) {
+      return startDate.format('MMM D, YYYY');
+    }
+    
+    // If different days, show date range
+    if (startDate.isSame(endDate, 'year')) {
+      return `${startDate.format('MMM D')} - ${endDate.format('MMM D, YYYY')}`;
+    }
+    
+    return `${startDate.format('MMM D, YYYY')} - ${endDate.format('MMM D, YYYY')}`;
+  };
+
   // Calculate total savings for the time period
   const calculateTotalSavings = () => {
     if (!savingsData || savingsData.length === 0 || !timestamps || timestamps.length === 0) {
@@ -37,17 +57,34 @@ const SavingsChart = ({
       return itemTime >= startTime && itemTime <= endTime;
     });
     
-    // Use the pre-calculated savings from each filtered item
-    const totalSavings = filteredSavingsData.reduce((sum, item) => sum + (item.savings || 0), 0);
-    const totalTouCost = filteredSavingsData.reduce((sum, item) => sum + (item.touCost || 0), 0);
+    // Only sum savings from hours where there was flex rate usage (usage above subscription)
+    const totalSavings = filteredSavingsData.reduce((sum, item) => {
+      const hasFlexUsage = (item.usageKWh || 0) > (item.subscriptionQuantity || 0);
+      return hasFlexUsage ? sum + (item.savings || 0) : sum;
+    }, 0);
+    
+    // Calculate total TOU cost for hours with flex usage only
+    const totalTouCost = filteredSavingsData.reduce((sum, item) => {
+      const hasFlexUsage = (item.usageKWh || 0) > (item.subscriptionQuantity || 0);
+      return hasFlexUsage ? sum + (item.touCost || 0) : sum;
+    }, 0);
+    
+    // Count hours with flex usage for debugging
+    const hoursWithFlexUsage = filteredSavingsData.filter(item => 
+      (item.usageKWh || 0) > (item.subscriptionQuantity || 0)
+    ).length;
     
     // Debug logging
     console.log('Savings calculation debug:', {
       originalSavingsDataLength: savingsData.length,
       filteredSavingsDataLength: filteredSavingsData.length,
+      hoursWithFlexUsage,
       timestampRange: `${timestamps[0]} to ${timestamps[timestamps.length - 1]}`,
       sampleFiltered: filteredSavingsData.slice(0, 3).map(item => ({
         timestamp: item.timestamp,
+        usageKWh: item.usageKWh,
+        subscriptionQuantity: item.subscriptionQuantity,
+        hasFlexUsage: (item.usageKWh || 0) > (item.subscriptionQuantity || 0),
         savings: item.savings,
         touCost: item.touCost
       })),
@@ -540,7 +577,7 @@ const SavingsChart = ({
             )}
           </div>
           
-          {/* Total savings panel */}
+          {/* Total Savings component */}
           <div style={{
             padding: '12px 16px',
             backgroundColor: totalSavings >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
@@ -566,14 +603,14 @@ const SavingsChart = ({
               color: '#666',
               marginTop: '4px'
             }}>
-              Total {totalSavings >= 0 ? 'Savings' : 'Additional Cost'}
+              Total Savings from Flex Rate
             </div>
             <div style={{
               fontSize: '11px',
               color: '#888',
               marginTop: '2px'
             }}>
-              vs. Base Rate ({formatCurrency(totalTouCost)})
+              {getTimeframeString()}
             </div>
           </div>
         </div>
