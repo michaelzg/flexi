@@ -276,10 +276,7 @@ const SavingsChart = ({
                   <div class="chart-tooltip-divider">
                     <div style="text-align: center; padding: 8px; background-color: ${totalSavings >= 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; border-radius: 6px;">
                       <div style="font-weight: bold; color: ${totalSavings >= 0 ? '#10B981' : '#EF4444'}; font-size: 14px;">
-                        ${totalSavings >= 0 ? 'Savings' : 'Additional Cost'}:
-                      </div>
-                      <div style="font-weight: bold; color: ${totalSavings >= 0 ? '#10B981' : '#EF4444'}; font-size: 16px; margin-top: 2px;">
-                        ${formatCurrency(Math.abs(totalSavings))}
+                        ${totalSavings >= 0 ? 'Savings: ' : 'Additional Cost: '}${formatCurrency(Math.abs(totalSavings))}
                       </div>
                     </div>
                   </div>
@@ -531,21 +528,13 @@ const SavingsChart = ({
                   <span style={{ color: '#6B7280' }}>Actual with Flex:</span>
                   <span style={{ fontWeight: 'bold' }}>{formatCurrency(hoveredData.actualCost)}</span>
                 </div>
-                <div style={{ 
-                  marginTop: '6px', 
-                  padding: '8px',
-                  backgroundColor: '#22c55e',
-                  borderRadius: '6px',
-                  lineHeight: '1.3',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ 
-                    color: 'white', 
-                    fontWeight: 'bold', 
-                    fontSize: '12px'
-                  }}>
-                    {hoveredData.totalSavings >= 0 ? 'Savings: ' : 'Additional Cost: '}{formatCurrency(Math.abs(hoveredData.totalSavings))}
-                  </div>
+                <div style={{ marginBottom: '3px', lineHeight: '1.3', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: hoveredData.totalSavings >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                    {hoveredData.totalSavings >= 0 ? 'Savings:' : 'Additional Cost:'}
+                  </span>
+                  <span style={{ fontWeight: 'bold', color: hoveredData.totalSavings >= 0 ? '#10B981' : '#EF4444' }}>
+                    {formatCurrency(Math.abs(hoveredData.totalSavings))}
+                  </span>
                 </div>
               </>
             )}
