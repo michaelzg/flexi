@@ -400,7 +400,7 @@ body {
 
 /* Shared Tooltip Styles */
 .chart-tooltip {
-    background: rgba(255, 255, 255, 0.98);
+    background: rgba(255, 255, 255, 0.1);
     color: var(--text-color);
     padding: 16px 20px;
     border-radius: 12px;

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Chart as ChartJS, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import annotationPlugin from 'chartjs-plugin-annotation';
@@ -20,6 +20,7 @@ const SavingsChart = ({
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
   const tooltipRef = useRef(null);
+  const [hoveredData, setHoveredData] = useState(null);
 
   // Calculate total savings for the time period
   const calculateTotalSavings = () => {
@@ -187,12 +188,14 @@ const SavingsChart = ({
             // Hide tooltip if no tooltip data or outside chart
             if (!context.tooltip || context.tooltip.opacity === 0) {
               tooltipEl.style.opacity = '0';
+              setHoveredData(null);
               return;
             }
             
             const dataIndex = context.tooltip.dataPoints[0]?.dataIndex;
             if (dataIndex === undefined) {
               tooltipEl.style.opacity = '0';
+              setHoveredData(null);
               return;
             }
             
@@ -201,6 +204,7 @@ const SavingsChart = ({
             const savingsItem = savingsMap[timestampStr];
             
             if (!savingsItem) {
+              setHoveredData(null);
               tooltipEl.innerHTML = `
                 <div class="chart-tooltip">
                   <div class="chart-tooltip-header">${moment(timestamp).format('MMM D, YYYY hA')}</div>
@@ -232,6 +236,15 @@ const SavingsChart = ({
               // Total savings = what we would pay at TOU rate - what we actually pay
               const totalSavings = savingsItem.touCost - actualCost;
               
+              // Set hovered data for the summary panel
+              setHoveredData({
+                timestamp,
+                totalUsage: savingsItem.usageKWh,
+                baseRateOnlyCost: savingsItem.touCost,
+                actualCost,
+                totalSavings
+              });
+              
               tooltipEl.innerHTML = `
                 <div class="chart-tooltip">
                   <div class="chart-tooltip-header">${moment(timestamp).format('MMM D, YYYY hA')}</div>
@@ -261,10 +274,13 @@ const SavingsChart = ({
                   ` : ''}
                   
                   <div class="chart-tooltip-divider">
-                    <div style="font-weight: bold;">Total Usage: ${formatUsage(savingsItem.usageKWh)}</div>
-                    <div style="font-weight: bold;">Actual Cost: ${formatCurrency(actualCost)}</div>
-                    <div style="font-weight: bold; color: ${totalSavings >= 0 ? '#10B981' : '#EF4444'};">
-                      ${totalSavings >= 0 ? 'Savings' : 'Additional Cost'}: ${formatCurrency(Math.abs(totalSavings))}
+                    <div style="text-align: center; padding: 8px; background-color: ${totalSavings >= 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; border-radius: 6px;">
+                      <div style="font-weight: bold; color: ${totalSavings >= 0 ? '#10B981' : '#EF4444'}; font-size: 14px;">
+                        ${totalSavings >= 0 ? 'Savings' : 'Additional Cost'}:
+                      </div>
+                      <div style="font-weight: bold; color: ${totalSavings >= 0 ? '#10B981' : '#EF4444'}; font-size: 16px; margin-top: 2px;">
+                        ${formatCurrency(Math.abs(totalSavings))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -481,35 +497,95 @@ const SavingsChart = ({
     <div className="graph-container baseline-usage-chart" style={{position: 'relative'}}>
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
         <h2 style={{margin: 0}}>Usage Analysis: Base Rate vs. Flex Rate</h2>
-        <div style={{
-          padding: '12px 16px',
-          backgroundColor: totalSavings >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-          border: `2px solid ${totalSavings >= 0 ? '#10B981' : '#EF4444'}`,
-          borderRadius: '8px',
-          textAlign: 'center',
-          minWidth: '200px'
-        }}>
+        <div style={{display: 'flex', gap: '12px', alignItems: 'stretch'}}>
+          {/* Detailed breakdown panel - always present but invisible when not hovering */}
           <div style={{
-            fontSize: '24px',
-            fontWeight: 'bold',
-            color: totalSavings >= 0 ? '#10B981' : '#EF4444',
-            lineHeight: '1.2'
-          }}>
-            {totalSavings >= 0 ? '+' : ''}{formatCurrency(totalSavings)}
-          </div>
-          <div style={{
+            padding: '10px 12px',
+            backgroundColor: hoveredData ? 'rgba(107, 114, 128, 0.1)' : 'transparent',
+            border: hoveredData ? '2px solid #6B7280' : '2px solid transparent',
+            borderRadius: '8px',
+            minWidth: '200px',
             fontSize: '12px',
-            color: '#666',
-            marginTop: '4px'
+            height: '120px', // Increased height to prevent cutoff
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            opacity: hoveredData ? 1 : 0,
+            transition: 'opacity 0.2s ease-in-out',
+            overflow: 'hidden'
           }}>
-            Total {totalSavings >= 0 ? 'Savings' : 'Additional Cost'}
+            {hoveredData && (
+              <>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#374151', lineHeight: '1.3' }}>
+                  {moment(hoveredData.timestamp).format('MMM D, hA')}
+                </div>
+                <div style={{ marginBottom: '3px', lineHeight: '1.3', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#6B7280' }}>Total Usage:</span>
+                  <span style={{ fontWeight: 'bold' }}>{formatUsage(hoveredData.totalUsage)}</span>
+                </div>
+                <div style={{ marginBottom: '3px', lineHeight: '1.3', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#6B7280' }}>Base Rate only:</span>
+                  <span style={{ fontWeight: 'bold' }}>{formatCurrency(hoveredData.baseRateOnlyCost)}</span>
+                </div>
+                <div style={{ marginBottom: '3px', lineHeight: '1.3', display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#6B7280' }}>Actual with Flex:</span>
+                  <span style={{ fontWeight: 'bold' }}>{formatCurrency(hoveredData.actualCost)}</span>
+                </div>
+                <div style={{ 
+                  marginTop: '6px', 
+                  padding: '8px',
+                  backgroundColor: '#22c55e',
+                  borderRadius: '6px',
+                  lineHeight: '1.3',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ 
+                    color: 'white', 
+                    fontWeight: 'bold', 
+                    fontSize: '12px'
+                  }}>
+                    {hoveredData.totalSavings >= 0 ? 'Savings: ' : 'Additional Cost: '}{formatCurrency(Math.abs(hoveredData.totalSavings))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
+          
+          {/* Total savings panel */}
           <div style={{
-            fontSize: '11px',
-            color: '#888',
-            marginTop: '2px'
+            padding: '12px 16px',
+            backgroundColor: totalSavings >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+            border: `2px solid ${totalSavings >= 0 ? '#10B981' : '#EF4444'}`,
+            borderRadius: '8px',
+            textAlign: 'center',
+            minWidth: '200px',
+            height: '120px', // Increased height to match breakdown panel
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center'
           }}>
-            vs. Base Rate ({formatCurrency(totalTouCost)})
+            <div style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: totalSavings >= 0 ? '#10B981' : '#EF4444',
+              lineHeight: '1.2'
+            }}>
+              {totalSavings >= 0 ? '+' : ''}{formatCurrency(totalSavings)}
+            </div>
+            <div style={{
+              fontSize: '12px',
+              color: '#666',
+              marginTop: '4px'
+            }}>
+              Total {totalSavings >= 0 ? 'Savings' : 'Additional Cost'}
+            </div>
+            <div style={{
+              fontSize: '11px',
+              color: '#888',
+              marginTop: '2px'
+            }}>
+              vs. Base Rate ({formatCurrency(totalTouCost)})
+            </div>
           </div>
         </div>
       </div>
