@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const CsvUpload = ({ onDataParsed, label = "Upload Usage Data (CSV)" }) => {
+const CsvUpload = ({ onDataParsed, label = "Upload Usage Data (CSV)", dataType = "historical" }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -51,12 +51,16 @@ const CsvUpload = ({ onDataParsed, label = "Upload Usage Data (CSV)" }) => {
     // Skip header (first line)
     const dataLines = lines.slice(1);
     
-    // Check if this is the historical usage format
-    const isHistoricalFormat = header.includes('type') && 
+    // Check if this is the expected CSV format
+    const isExpectedFormat = header.includes('type') && 
                               header.includes('date') && 
                               header.includes('start time') && 
                               header.includes('usage (kwh)') && 
                               header.includes('cost');
+    
+    if (!isExpectedFormat) {
+      throw new Error('Invalid CSV format. Expected headers: TYPE,DATE,START TIME,END TIME,USAGE (kWh),COST,NOTES');
+    }
     
     // Parse each line
     const parsedData = dataLines.map(line => {
@@ -67,50 +71,27 @@ const CsvUpload = ({ onDataParsed, label = "Upload Usage Data (CSV)" }) => {
         throw new Error(`Invalid CSV format in line: ${line}`);
       }
 
-      if (isHistoricalFormat) {
-        // Historical usage format
-        // TYPE,DATE,START TIME,END TIME,USAGE (kWh),COST,NOTES
-        const date = columns[1].trim();
-        const startTime = columns[2].trim();
-        
-        // Create timestamp
-        const timestamp = `${date}T${startTime}:00`;
-        
-        // Extract usage and cost
-        const usage = parseFloat(columns[4].trim());
-        
-        // Remove $ from cost and convert to float
-        const costStr = columns[5].trim();
-        const cost = parseFloat(costStr.replace('$', ''));
+      // All data uses the same format, but gets marked differently based on dataType prop
+      const date = columns[1].trim();
+      const startTime = columns[2].trim();
+      
+      // Create timestamp
+      const timestamp = `${date}T${startTime}:00`;
+      
+      // Extract usage and cost
+      const usage = parseFloat(columns[4].trim());
+      
+      // Remove $ from cost and convert to float
+      const costStr = columns[5].trim();
+      const cost = parseFloat(costStr.replace('$', ''));
 
-        return {
-          timestamp,
-          usage,
-          cost,
-          isHistorical: true
-        };
-      } else {
-        // Original format
-        const date = columns[1].trim();
-        const startTime = columns[2].trim();
-        
-        // Create timestamp
-        const timestamp = `${date}T${startTime}:00`;
-        
-        // Extract usage and cost
-        const usage = parseFloat(columns[4].trim());
-        
-        // Remove $ from cost and convert to float
-        const costStr = columns[5].trim();
-        const cost = parseFloat(costStr.replace('$', ''));
-
-        return {
-          timestamp,
-          usage,
-          cost,
-          isHistorical: false
-        };
-      }
+      return {
+        timestamp,
+        usage,
+        cost,
+        isHistorical: dataType === "historical",
+        isCurrentUsage: dataType === "current"
+      };
     });
 
     return parsedData;
@@ -137,18 +118,34 @@ const CsvUpload = ({ onDataParsed, label = "Upload Usage Data (CSV)" }) => {
         </div>
         {showTooltip && (
           <div className="csv-upload-tooltip">
-            <strong>Upload Historical Usage CSV</strong><br/>
+            <strong>{dataType === "historical" ? "Upload Baseline Usage CSV" : "Upload Current Usage CSV"}</strong><br/>
             Expected format with these exact headers:<br/>
             <code>TYPE,DATE,START TIME,END TIME,USAGE (kWh),COST,NOTES</code><br/><br/>
             
             <strong>Requirements:</strong><br/>
-            • Historical data from 1 year ago<br/>
-            • DATE: YYYY-MM-DD format<br/>
-            • TIME: HH:MM format (hourly intervals)<br/>
-            • USAGE: Numeric kWh values<br/>
-            • COST: Include $ symbol (e.g., $2.66)<br/><br/>
-            
-            This data helps calculate PG&E subscription cost credits based on your historical usage patterns.
+            {dataType === "historical" ? (
+              <>
+                • Historical data from 1 year ago<br/>
+                • Used to calculate subscription quantities<br/>
+                • DATE: YYYY-MM-DD format<br/>
+                • TIME: HH:MM format (hourly intervals)<br/>
+                • USAGE: Numeric kWh values<br/>
+                • COST: Include $ symbol (e.g., $2.66)<br/><br/>
+                
+                This data helps calculate PG&E subscription baselines for the pilot program.
+              </>
+            ) : (
+              <>
+                • Current period usage data<br/>
+                • Same time period as pricing data<br/>
+                • DATE: YYYY-MM-DD format<br/>
+                • TIME: HH:MM format (hourly intervals)<br/>
+                • USAGE: Numeric kWh values<br/>
+                • COST: Include $ symbol (e.g., $2.66)<br/><br/>
+                
+                This data is used to calculate your actual savings vs standard TOU rates.
+              </>
+            )}
           </div>
         )}
       </div>

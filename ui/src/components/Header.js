@@ -2,7 +2,7 @@ import React from 'react';
 import DatePicker from './DatePicker';
 import CsvUpload from './CsvUpload';
 
-const Header = ({ dateRange, onDateChange, onHistoricalDataParsed }) => {
+const Header = ({ dateRange, onDateChange, onHistoricalDataParsed, onCurrentUsageDataParsed }) => {
   return (
     <header className="header">
       <div className="header-content">
@@ -17,10 +17,18 @@ const Header = ({ dateRange, onDateChange, onHistoricalDataParsed }) => {
             initialStartDate={dateRange.startDate}
             initialEndDate={dateRange.endDate}
           />
-          <CsvUpload 
-            onDataParsed={onHistoricalDataParsed} 
-            label="Upload Usage CSV"
-          />
+          <div className="upload-controls">
+            <CsvUpload 
+              onDataParsed={onHistoricalDataParsed} 
+              label="Upload Baseline Data (Last Year)"
+              dataType="historical"
+            />
+            <CsvUpload 
+              onDataParsed={onCurrentUsageDataParsed} 
+              label="Upload Current Usage Data"
+              dataType="current"
+            />
+          </div>
         </div>
         
         <div className="header-metadata">

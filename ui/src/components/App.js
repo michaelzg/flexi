@@ -2,8 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Header from './Header';
 import Chart from './Chart';
 import HistoricalUsageChart from './HistoricalUsageChart';
+import SavingsChart from './SavingsChart';
 import WhatThisMeans from './WhatThisMeans';
 import { fetchPricingData } from '../utils/apiService';
+import { 
+  calculateSubscriptionQuantities, 
+  calculateSavingsForPeriods 
+} from '../utils/rateCalculator';
 import '../styles/main.css';
 
 const App = () => {
@@ -19,8 +24,11 @@ const App = () => {
   });
   const initialFetchDone = useRef(false);
   const [historicalUsageData, setHistoricalUsageData] = useState([]);
+  const [currentUsageData, setCurrentUsageData] = useState([]);
   const [selectedData, setSelectedData] = useState(null);
   const [selectedTimestamp, setSelectedTimestamp] = useState(null);
+  const [savingsData, setSavingsData] = useState([]);
+  const [subscriptionQuantities, setSubscriptionQuantities] = useState({});
 
   // Initialize with today's date and 2 days from now on component mount
   useEffect(() => {
@@ -82,15 +90,69 @@ const App = () => {
   }, [dateRange]);
 
   const handleHistoricalDataParsed = (data) => {
-    // Filter to only include historical data
+    // Filter to only include historical data (for baseline calculation)
     const historicalData = data.filter(item => item.isHistorical);
     setHistoricalUsageData(historicalData);
     
     // Reset selected data when new historical data is loaded
     setSelectedData(null);
     
-    console.log("Historical data loaded:", historicalData.length, "data points");
+    // Calculate subscription quantities from historical data
+    if (historicalData.length > 0) {
+      const subscriptions = calculateSubscriptionQuantities(historicalData);
+      setSubscriptionQuantities(subscriptions);
+      console.log("Subscription quantities calculated:", subscriptions);
+    }
+    
+    console.log("Baseline historical data loaded:", historicalData.length, "data points");
   };
+
+  const handleCurrentUsageDataParsed = (data) => {
+    // Filter to only include current usage data
+    const currentData = data.filter(item => item.isCurrentUsage);
+    setCurrentUsageData(currentData);
+    
+    // Reset selected data when new current usage data is loaded
+    setSelectedData(null);
+    
+    console.log("Current usage data loaded:", currentData.length, "data points");
+    console.log("Sample current data:", currentData.slice(0, 3));
+    console.log("Current state - pricing data points:", chartData.timestamps.length);
+    console.log("Current state - subscription quantities:", Object.keys(subscriptionQuantities).length);
+  };
+
+  // Calculate savings whenever we have current usage data, pricing data, and subscription quantities
+  useEffect(() => {
+    console.log("Savings calculation check:", {
+      hasCurrentUsage: currentUsageData.length > 0,
+      hasPricingData: chartData.timestamps.length > 0,
+      hasSubscriptions: Object.keys(subscriptionQuantities).length > 0,
+      currentUsageCount: currentUsageData.length,
+      pricingCount: chartData.timestamps.length,
+      subscriptionHours: Object.keys(subscriptionQuantities).length
+    });
+    
+    if (currentUsageData.length > 0 && chartData.timestamps.length > 0 && Object.keys(subscriptionQuantities).length > 0) {
+      console.log("Calculating savings with:", {
+        currentUsageDataPoints: currentUsageData.length,
+        pricingDataPoints: chartData.timestamps.length,
+        subscriptionHours: Object.keys(subscriptionQuantities).length
+      });
+      
+      const savings = calculateSavingsForPeriods(
+        currentUsageData,
+        chartData,
+        subscriptionQuantities
+      );
+      
+      setSavingsData(savings);
+      console.log("Savings calculated:", savings.length, "data points");
+      console.log("Sample savings:", savings.slice(0, 3));
+    } else {
+      console.log("Not calculating savings - missing data");
+      setSavingsData([]);
+    }
+  }, [currentUsageData, chartData, subscriptionQuantities]);
   
   // Handle bar selection from charts
   const handleBarSelect = (timestamp, usage, price) => {
@@ -111,54 +173,34 @@ const App = () => {
         newSelectedData.usage = usage;
       } 
       // If we're selecting a bar on the price chart (no usage), try to find the corresponding usage
-      else if (historicalUsageData.length > 0) {
-        // Find the closest historical usage data point by matching hour, day, and month
-        // First try exact match
-        let historicalDataPoint = historicalUsageData.find(item => {
-          const itemDate = new Date(item.timestamp);
-          return itemDate.getHours() === pastTimestamp.getHours() && 
-                 itemDate.getDate() === pastTimestamp.getDate() && 
-                 itemDate.getMonth() === pastTimestamp.getMonth();
+      else if (currentUsageData.length > 0) {
+        // Find the closest current usage data point by matching timestamp exactly or closest time
+        let currentDataPoint = currentUsageData.find(item => {
+          return item.timestamp === timestamp;
         });
         
-        // If no exact match, try to find the closest hour on the same day
-        if (!historicalDataPoint) {
-          const sameDay = historicalUsageData.filter(item => {
-            const itemDate = new Date(item.timestamp);
-            return itemDate.getDate() === pastTimestamp.getDate() && 
-                   itemDate.getMonth() === pastTimestamp.getMonth();
+        // If no exact match, try to find the closest time
+        if (!currentDataPoint) {
+          const targetTime = new Date(timestamp);
+          currentUsageData.sort((a, b) => {
+            const timeA = new Date(a.timestamp);
+            const timeB = new Date(b.timestamp);
+            return Math.abs(timeA - targetTime) - Math.abs(timeB - targetTime);
           });
           
-          if (sameDay.length > 0) {
-            // Find the closest hour
-            sameDay.sort((a, b) => {
-              const hourA = new Date(a.timestamp).getHours();
-              const hourB = new Date(b.timestamp).getHours();
-              const targetHour = pastTimestamp.getHours();
-              return Math.abs(hourA - targetHour) - Math.abs(hourB - targetHour);
-            });
-            
-            historicalDataPoint = sameDay[0];
-          }
+          currentDataPoint = currentUsageData[0];
+          console.log("Using closest current usage data point");
         }
         
-        // If still no match, use the first available data point
-        if (!historicalDataPoint && historicalUsageData.length > 0) {
-          historicalDataPoint = historicalUsageData[0];
-          console.log("Using first available historical data point as fallback");
-        }
-        
-        if (historicalDataPoint) {
-          newSelectedData.usage = historicalDataPoint.usage;
+        if (currentDataPoint) {
+          newSelectedData.usage = currentDataPoint.usage;
         } else {
-          // This should never happen now, but just in case
-          console.log("No historical usage data found for timestamp:", timestamp);
-          // Use a default value instead of returning
+          console.log("No current usage data found for timestamp:", timestamp);
           newSelectedData.usage = 0;
         }
       } else {
-        // If no historical usage data is available at all, use a default value
-        console.log("No historical usage data available, using default value");
+        // If no current usage data is available at all, use a default value
+        console.log("No current usage data available, using default value");
         newSelectedData.usage = 0;
       }
       
@@ -178,6 +220,7 @@ const App = () => {
         dateRange={dateRange}
         onDateChange={handleDateChange}
         onHistoricalDataParsed={handleHistoricalDataParsed}
+        onCurrentUsageDataParsed={handleCurrentUsageDataParsed}
       />
       
       {isLoading && (
@@ -213,6 +256,15 @@ const App = () => {
           selectedTimestamp={selectedTimestamp}
         />
       )}
+
+      <SavingsChart 
+        savingsData={savingsData}
+        timestamps={chartData.timestamps}
+        prices={chartData.prices}
+        onBarSelect={handleBarSelect}
+        selectedTimestamp={selectedTimestamp}
+        isLoading={isLoading}
+      />
     </div>
   );
 };
