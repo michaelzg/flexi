@@ -202,8 +202,8 @@ const SavingsChart = ({
             
             if (!savingsItem) {
               tooltipEl.innerHTML = `
-                <div style="background: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 4px; font-size: 12px;">
-                  <div style="font-weight: bold; margin-bottom: 4px;">${moment(timestamp).format('MMM D, YYYY hA')}</div>
+                <div class="chart-tooltip">
+                  <div class="chart-tooltip-header">${moment(timestamp).format('MMM D, YYYY hA')}</div>
                   <div>No savings data available</div>
                 </div>
               `;
@@ -233,34 +233,34 @@ const SavingsChart = ({
               const totalSavings = savingsItem.touCost - actualCost;
               
               tooltipEl.innerHTML = `
-                <div style="background: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 4px; font-size: 12px; min-width: 200px;">
-                  <div style="font-weight: bold; margin-bottom: 8px;">${moment(timestamp).format('MMM D, YYYY hA')}</div>
+                <div class="chart-tooltip">
+                  <div class="chart-tooltip-header">${moment(timestamp).format('MMM D, YYYY hA')}</div>
                   
-                  <div style="margin-bottom: 6px;">
-                    <div style="display: flex; align-items: center; margin-bottom: 2px;">
-                      <div style="width: 12px; height: 12px; background: rgba(59, 130, 246, 0.8); margin-right: 6px; border-radius: 2px;"></div>
-                      <span style="color: rgba(59, 130, 246, 1); font-weight: bold;">Base Rate Usage</span>
+                  <div class="chart-tooltip-section">
+                    <div class="chart-tooltip-label">
+                      <div class="chart-tooltip-color-square" style="background: rgba(59, 130, 246, 0.8);"></div>
+                      <span style="color: rgba(59, 130, 246, 1);">Base Rate Usage</span>
                     </div>
-                    <div style="margin-left: 18px; font-size: 11px;">
+                    <div class="chart-tooltip-details">
                       <div>${formatUsage(baseRateUsage)} at ${formatCurrency(baseRateCostPerKWh)}/kWh</div>
                       <div>Total: ${formatCurrency(subscriptionCost)}</div>
                     </div>
                   </div>
                   
                   ${flexRateUsage > 0 ? `
-                  <div style="margin-bottom: 6px;">
-                    <div style="display: flex; align-items: center; margin-bottom: 2px;">
-                      <div style="width: 12px; height: 12px; background: rgba(245, 158, 11, 0.8); margin-right: 6px; border-radius: 2px;"></div>
-                      <span style="color: rgba(245, 158, 11, 1); font-weight: bold;">Flex Rate Usage</span>
+                  <div class="chart-tooltip-section">
+                    <div class="chart-tooltip-label">
+                      <div class="chart-tooltip-color-square" style="background: rgba(245, 158, 11, 0.8);"></div>
+                      <span style="color: rgba(245, 158, 11, 1);">Flex Rate Usage</span>
                     </div>
-                    <div style="margin-left: 18px; font-size: 11px;">
+                    <div class="chart-tooltip-details">
                       <div>${formatUsage(flexRateUsage)} at ${formatCurrency(flexRateCostPerKWh)}/kWh</div>
                       <div>Total: ${formatCurrency(flexCost)}</div>
                     </div>
                   </div>
                   ` : ''}
                   
-                  <div style="border-top: 1px solid rgba(255,255,255,0.3); padding-top: 6px; margin-top: 6px;">
+                  <div class="chart-tooltip-divider">
                     <div style="font-weight: bold;">Total Usage: ${formatUsage(savingsItem.usageKWh)}</div>
                     <div style="font-weight: bold;">Actual Cost: ${formatCurrency(actualCost)}</div>
                     <div style="font-weight: bold; color: ${totalSavings >= 0 ? '#10B981' : '#EF4444'};">

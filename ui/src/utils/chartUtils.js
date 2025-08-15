@@ -103,11 +103,13 @@ export const externalTooltipHandler = (tooltipEl, isHistorical = false) => (cont
       const baselineValue = baselineDataset ? baselineDataset.data[dataIndex] : null;
       
       tooltipContent = `
-        <div class="tooltip-title">${formattedDate}</div>
-        ${usageValue !== null ? `<div class="tooltip-value usage-value">${usageValue.toFixed(2)} kWh</div>` : ''}
-        ${costValue !== null ? `<div class="tooltip-value cost-value">$${costValue.toFixed(2)}</div>` : ''}
-        ${baselineValue !== null ? `<div class="tooltip-value baseline-value">${baselineValue.toFixed(2)} kWh</div>` : ''}
-        <div class="tooltip-time">${timeIcon} ${formattedTime}</div>
+        <div class="chart-tooltip">
+          <div class="chart-tooltip-header">${formattedDate}</div>
+          ${usageValue !== null ? `<div class="chart-tooltip-section"><div class="tooltip-value usage-value">${usageValue.toFixed(2)} kWh</div></div>` : ''}
+          ${costValue !== null ? `<div class="chart-tooltip-section"><div class="tooltip-value cost-value">$${costValue.toFixed(2)}</div></div>` : ''}
+          ${baselineValue !== null ? `<div class="chart-tooltip-section"><div class="tooltip-value baseline-value">${baselineValue.toFixed(2)} kWh</div></div>` : ''}
+          <div class="chart-tooltip-section"><div class="tooltip-time">${timeIcon} ${formattedTime}</div></div>
+        </div>
       `;
     } else {
       // Price chart (single dataset)
@@ -116,13 +118,16 @@ export const externalTooltipHandler = (tooltipEl, isHistorical = false) => (cont
       const valueClass = isNegative ? 'negative-value' : 'positive-value';
       
       tooltipContent = `
-        <div class="tooltip-title">${formattedDate}</div>
-        <div class="tooltip-value ${valueClass}">${(dataPoint * 100).toFixed(2)} ¢/kWh</div>
-        <div class="tooltip-time">${timeIcon} ${formattedTime}</div>
-        ${isBestPrice ? `<div class="tooltip-best-price">${timeIcon} best price</div>` : ''}
+        <div class="chart-tooltip">
+          <div class="chart-tooltip-header">${formattedDate}</div>
+          <div class="chart-tooltip-section"><div class="tooltip-value ${valueClass}">${(dataPoint * 100).toFixed(2)} ¢/kWh</div></div>
+          <div class="chart-tooltip-section"><div class="tooltip-time">${timeIcon} ${formattedTime}</div></div>
+          ${isBestPrice ? `<div class="chart-tooltip-section"><div class="tooltip-best-price">${timeIcon} best price</div></div>` : ''}
+        </div>
       `;
     }
     
+    // Set the tooltip content directly
     tooltipEl.innerHTML = tooltipContent;
   }
 
