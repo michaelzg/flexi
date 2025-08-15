@@ -217,7 +217,7 @@ const HistoricalUsageChart = ({ usageData, timestamps, prices, isLoading, onBarS
           padding: {
             top: 20,
             right: 20,
-            bottom: 30,
+            bottom: 80,
             left: 10
           }
         },

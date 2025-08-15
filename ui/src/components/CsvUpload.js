@@ -137,8 +137,18 @@ const CsvUpload = ({ onDataParsed, label = "Upload Usage Data (CSV)" }) => {
         </div>
         {showTooltip && (
           <div className="csv-upload-tooltip">
-            Upload historical usage data from 1 year ago to compare with current pricing. 
-            This helps calculate PG&E subscription cost credits based on your historical usage patterns.
+            <strong>Upload Historical Usage CSV</strong><br/>
+            Expected format with these exact headers:<br/>
+            <code>TYPE,DATE,START TIME,END TIME,USAGE (kWh),COST,NOTES</code><br/><br/>
+            
+            <strong>Requirements:</strong><br/>
+            • Historical data from 1 year ago<br/>
+            • DATE: YYYY-MM-DD format<br/>
+            • TIME: HH:MM format (hourly intervals)<br/>
+            • USAGE: Numeric kWh values<br/>
+            • COST: Include $ symbol (e.g., $2.66)<br/><br/>
+            
+            This data helps calculate PG&E subscription cost credits based on your historical usage patterns.
           </div>
         )}
       </div>
