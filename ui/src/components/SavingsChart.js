@@ -286,6 +286,59 @@ const SavingsChart = ({
             if (containerEl && containerEl.style.position !== 'relative') {
               containerEl.style.position = 'relative';
             }
+            
+            // Synchronize tooltips between charts
+            if (window.syncTooltip) {
+              clearTimeout(window.syncTooltip);
+            }
+            
+            window.syncTooltip = setTimeout(() => {
+              const currentTimestamp = timestamps[dataIndex];
+              const allCharts = Object.values(ChartJS.instances);
+              
+              allCharts.forEach(otherChart => {
+                if (otherChart.id !== context.chart.id) {
+                  try {
+                    // For SavingsChart, we need to find corresponding timestamps in other charts
+                    // Historical chart uses timestamps from 1 year ago
+                    // Price chart uses current timestamps
+                    const searchTimestamp = moment(currentTimestamp).subtract(1, 'year').toISOString();
+                    
+                    let matchingIndex = -1;
+                    
+                    // Try to find matching timestamp (exact or adjusted for historical)
+                    matchingIndex = otherChart.data.labels.findIndex(label => {
+                      // For historical chart comparison (1 year ago)
+                      if (moment(label).isSame(moment(searchTimestamp), 'hour')) {
+                        return true;
+                      }
+                      // For price chart comparison (current year)
+                      if (moment(label).isSame(moment(currentTimestamp), 'hour')) {
+                        return true;
+                      }
+                      return false;
+                    });
+                    
+                    // Only proceed if we found a matching index and it's within the valid range
+                    if (matchingIndex !== -1 && 
+                        matchingIndex < otherChart.data.datasets[0].data.length && 
+                        otherChart.data.datasets[0].data[matchingIndex] !== undefined) {
+                      
+                      try {
+                        otherChart.tooltip.setActiveElements([
+                          { datasetIndex: 0, index: matchingIndex }
+                        ], { x: 0, y: 0 });
+                        otherChart.update();
+                      } catch (error) {
+                        console.log("Error setting tooltip on other chart:", error);
+                      }
+                    }
+                  } catch (error) {
+                    console.log("Error synchronizing tooltips from SavingsChart:", error);
+                  }
+                }
+              });
+            }, 10);
           }
         },
         annotation: {

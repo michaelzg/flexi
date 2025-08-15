@@ -163,7 +163,7 @@ export const externalTooltipHandler = (tooltipEl, isHistorical = false) => (cont
         const compareTimestamp = isHistorical ? timestamp : searchTimestamp;
         
         try {
-          const dataIndex = otherChart.data.labels.findIndex(label => {
+          let dataIndex = otherChart.data.labels.findIndex(label => {
             // For historical chart, we need to compare with the adjusted timestamp
             if (isHistorical) {
               return moment(label).isSame(moment(searchTimestamp), 'hour');
@@ -171,6 +171,14 @@ export const externalTooltipHandler = (tooltipEl, isHistorical = false) => (cont
               return moment(label).isSame(moment(compareTimestamp), 'hour');
             }
           });
+          
+          // If no match found with the primary logic, try finding SavingsChart matches
+          if (dataIndex === -1) {
+            // Try to match with current year timestamp (for SavingsChart)
+            dataIndex = otherChart.data.labels.findIndex(label => {
+              return moment(label).isSame(moment(timestamp), 'hour');
+            });
+          }
           
           // Only proceed if we found a matching index and it's within the valid range
           if (dataIndex !== -1 && 
