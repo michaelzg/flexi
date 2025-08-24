@@ -628,20 +628,6 @@ const SavingsChart = ({
       
       <canvas ref={chartRef}></canvas>
       
-      <div className="chart-legend">
-        <div className="legend-item">
-          <div className="legend-color" style={{backgroundColor: 'rgba(59, 130, 246, 0.8)', border: '1px solid rgba(59, 130, 246, 1)'}}></div>
-          <span>Base Rate Usage (subscription quantity)</span>
-        </div>
-        <div className="legend-item">
-          <div className="legend-color" style={{backgroundColor: 'rgba(245, 158, 11, 0.8)', border: '1px solid rgba(245, 158, 11, 1)'}}></div>
-          <span>Flex Rate Usage (above subscription)</span>
-        </div>
-        <div className="legend-item">
-          <div className="legend-color" style={{backgroundColor: 'rgba(156, 163, 175, 0.3)', border: '1px solid rgba(156, 163, 175, 0.5)'}}></div>
-          <span>No Savings Data Available</span>
-        </div>
-      </div>
       <div id="savings-chart-tooltip" ref={tooltipRef}></div>
     </div>
   );
