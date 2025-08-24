@@ -21,6 +21,7 @@ const WhatThisMeans = ({ selectedData }) => {
 
   // Format data for display if available
   let usageFormatted = '';
+  let subscriptionQuantityFormatted = '';
   let priceInCents = '';
   let dateTimeInfo = '';
   
@@ -43,6 +44,13 @@ const WhatThisMeans = ({ selectedData }) => {
     
     // Format the usage
     usageFormatted = selectedData.usage.toFixed(1);
+    
+    // Format the subscription quantity (threshold)
+    subscriptionQuantityFormatted = (selectedData.subscriptionQuantity !== null && 
+                                   selectedData.subscriptionQuantity !== undefined && 
+                                   typeof selectedData.subscriptionQuantity === 'number') ? 
+      selectedData.subscriptionQuantity.toFixed(1) : 
+      '0.0';
   }
 
   return (
@@ -83,7 +91,7 @@ const WhatThisMeans = ({ selectedData }) => {
               </>
             ) : (
               <p className="what-this-means-text">
-                For {dateTimeInfo}, your subscription is <strong>{usageFormatted} kWh</strong> with dynamic price at <strong>{priceInCents}¢</strong>.
+                For {dateTimeInfo}, your subscription is <strong>{subscriptionQuantityFormatted} kWh</strong> with dynamic price at <strong>{priceInCents}¢</strong>.
                 <span className="what-this-means-note" style={{ visibility: selectedData.price < 0 ? 'visible' : 'hidden' }}>
                   <strong>Note:</strong> Negative pricing means you're incentivized to use more energy.
                 </span>
@@ -100,8 +108,8 @@ const WhatThisMeans = ({ selectedData }) => {
             </div>
           ) : (
             <div className="what-this-means-usage-scenarios">
-              <p><strong>If you use less than {usageFormatted} kWh:</strong> {selectedData.price < 0 ? 'Charged' : 'Credited'} {Math.abs(priceInCents)}¢ per kWh saved</p>
-              <p><strong>If you use more than {usageFormatted} kWh:</strong> {selectedData.price < 0 ? 'Credited' : 'Charged'} {Math.abs(priceInCents)}¢ per additional kWh</p>
+              <p><strong>If you use less than {subscriptionQuantityFormatted} kWh:</strong> {selectedData.price < 0 ? 'Charged' : 'Credited'} {Math.abs(priceInCents)}¢ per kWh saved</p>
+              <p><strong>If you use more than {subscriptionQuantityFormatted} kWh:</strong> {selectedData.price < 0 ? 'Credited' : 'Charged'} {Math.abs(priceInCents)}¢ per additional kWh</p>
             </div>
           )}
         </div>

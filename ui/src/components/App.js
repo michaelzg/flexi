@@ -204,6 +204,22 @@ const App = () => {
         newSelectedData.usage = 0;
       }
       
+      // Try to find subscription quantity from savings data for this timestamp
+      if (savingsData.length > 0) {
+        const savingsItem = savingsData.find(item => item.timestamp === timestamp);
+        if (savingsItem) {
+          newSelectedData.subscriptionQuantity = savingsItem.subscriptionQuantity;
+        }
+      }
+      
+      // If no subscription quantity found, try to get it from subscriptionQuantities
+      if (!newSelectedData.subscriptionQuantity && Object.keys(subscriptionQuantities).length > 0) {
+        const pastTimestamp = new Date(timestamp);
+        pastTimestamp.setFullYear(pastTimestamp.getFullYear() - 1);
+        const hour = pastTimestamp.getHours();
+        newSelectedData.subscriptionQuantity = subscriptionQuantities[hour] || 0;
+      }
+      
       // Always update with the data we have
       console.log("Setting selected data:", newSelectedData);
       setSelectedData(newSelectedData);
