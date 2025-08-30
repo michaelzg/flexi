@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Chart as ChartJS, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import annotationPlugin from 'chartjs-plugin-annotation';
@@ -14,21 +14,13 @@ const Chart = ({ timestamps, prices, isLoading, onBarSelect, selectedTimestamp }
   const chartInstance = useRef(null);
   const tooltipRef = useRef(null);
   
-  useEffect(() => {
-    // Only create chart if we have data and not loading
-    if (timestamps && prices && timestamps.length > 0 && !isLoading) {
-      createChart();
-    }
-    
-    // Cleanup on unmount
-    return () => {
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
-    };
-  }, [timestamps, prices, isLoading, selectedTimestamp]);
+  // Check if current time is within the chart's date range
+  const now = new Date();
+  const isCurrentTimeInRange = timestamps && timestamps.length > 0 && 
+    now >= new Date(timestamps[0]) && 
+    now <= new Date(timestamps[timestamps.length - 1]);
 
-  const createChart = () => {
+  const createChart = useCallback(() => {
     // Generate day background annotations
     const dayBackgrounds = generateDayBackgrounds(timestamps);
     
@@ -243,26 +235,28 @@ const Chart = ({ timestamps, prices, isLoading, onBarSelect, selectedTimestamp }
           },
           annotation: {
             annotations: {
-              currentTime: {
-                type: 'line',
-                xMin: new Date().toISOString(),
-                xMax: new Date().toISOString(),
-                borderColor: 'rgba(244, 67, 54, 0.8)',
-                borderWidth: 2,
-                borderDash: [5, 5],
-                label: {
-                  display: true,
-                  content: 'Current Time',
-                  position: 'top',
-                  backgroundColor: 'rgba(244, 67, 54, 0.8)',
-                  font: {
-                    family: "'Poppins', sans-serif",
-                    size: 12,
-                    weight: 'bold'
-                  },
-                  padding: 6
+              ...(isCurrentTimeInRange ? {
+                currentTime: {
+                  type: 'line',
+                  xMin: new Date().toISOString(),
+                  xMax: new Date().toISOString(),
+                  borderColor: 'rgba(244, 67, 54, 0.8)',
+                  borderWidth: 2,
+                  borderDash: [5, 5],
+                  label: {
+                    display: true,
+                    content: 'Current Time',
+                    position: 'top',
+                    backgroundColor: 'rgba(244, 67, 54, 0.8)',
+                    font: {
+                      family: "'Poppins', sans-serif",
+                      size: 12,
+                      weight: 'bold'
+                    },
+                    padding: 6
+                  }
                 }
-              },
+              } : {}),
               ...dayBackgrounds,
               ...selectionHighlight
             }
@@ -319,7 +313,21 @@ const Chart = ({ timestamps, prices, isLoading, onBarSelect, selectedTimestamp }
         }
       }
     });
-  };
+  }, [timestamps, prices, selectedTimestamp, isCurrentTimeInRange, onBarSelect]);
+  
+  useEffect(() => {
+    // Only create chart if we have data and not loading
+    if (timestamps && prices && timestamps.length > 0 && !isLoading) {
+      createChart();
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+    };
+  }, [timestamps, prices, isLoading, selectedTimestamp, isCurrentTimeInRange, createChart]);
 
   return (
     <div className="graph-container">
@@ -333,10 +341,12 @@ const Chart = ({ timestamps, prices, isLoading, onBarSelect, selectedTimestamp }
           <div className="legend-color legend-negative"></div>
           <span>Negative Prices</span>
         </div>
-        <div className="legend-item">
-          <div className="legend-current"></div>
-          <span>Current Time</span>
-        </div>
+        {isCurrentTimeInRange && (
+          <div className="legend-item">
+            <div className="legend-current"></div>
+            <span>Current Time</span>
+          </div>
+        )}
       </div>
       <div id="chart-tooltip" ref={tooltipRef}></div>
     </div>
