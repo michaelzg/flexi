@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { Chart as ChartJS, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import annotationPlugin from 'chartjs-plugin-annotation';
@@ -15,95 +15,15 @@ const SavingsChart = ({
   prices,
   onBarSelect, 
   selectedTimestamp,
-  isLoading = false 
+  isLoading = false,
+  onHoverSummary
 }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
   const tooltipRef = useRef(null);
-  const [hoveredData, setHoveredData] = useState(null);
+  const lastHoverRef = useRef(null);
 
-  // Get timeframe string for the displayed data
-  const getTimeframeString = () => {
-    if (!timestamps || timestamps.length === 0) return '';
-    
-    const startDate = moment(timestamps[0]);
-    const endDate = moment(timestamps[timestamps.length - 1]);
-    
-    // If same day, show just the date
-    if (startDate.isSame(endDate, 'day')) {
-      return startDate.format('MMM D, YYYY');
-    }
-    
-    // If different days, show date range
-    if (startDate.isSame(endDate, 'year')) {
-      return `${startDate.format('MMM D')} - ${endDate.format('MMM D, YYYY')}`;
-    }
-    
-    return `${startDate.format('MMM D, YYYY')} - ${endDate.format('MMM D, YYYY')}`;
-  };
-
-  // Calculate total savings for the time period
-  const calculateTotalSavings = () => {
-    if (!savingsData || savingsData.length === 0 || !timestamps || timestamps.length === 0) {
-      return { totalSavings: 0, totalTouCost: 0 };
-    }
-    
-    // Filter savings data to only include items within the displayed timestamp range
-    const startTime = new Date(timestamps[0]).getTime();
-    const endTime = new Date(timestamps[timestamps.length - 1]).getTime();
-    
-    const filteredSavingsData = savingsData.filter(item => {
-      const itemTime = new Date(item.timestamp).getTime();
-      return itemTime >= startTime && itemTime <= endTime;
-    });
-    
-    let contributingSavings = 0;
-    let contributingTouCost = 0;
-    let contributingHourCount = 0;
-    
-    filteredSavingsData.forEach((item, index) => {
-      const hasFlexUsage = (item.usageKWh || 0) > (item.subscriptionQuantity || 0);
-      if (hasFlexUsage) {
-        contributingHourCount++;
-        
-        // Calculate savings using the same method as tooltip for consistency
-        const baseRateUsage = Math.min(item.usageKWh || 0, item.subscriptionQuantity || 0);
-        const flexRateUsage = Math.max(0, (item.usageKWh || 0) - (item.subscriptionQuantity || 0));
-        const subscriptionCost = baseRateUsage * (item.touRate || 0);
-        const flexCost = flexRateUsage * (item.dynamicRate || 0);
-        const actualCost = subscriptionCost + flexCost;
-        const hourSavings = (item.touCost || 0) - actualCost;
-        
-        contributingSavings += hourSavings;
-        contributingTouCost += (item.touCost || 0);
-      }
-    });
-    
-    // Only sum savings from hours where there was flex rate usage (usage above subscription)
-    const totalSavings = contributingSavings;
-    const totalTouCost = contributingTouCost;
-    const hoursWithFlexUsage = contributingHourCount;
-    
-    // Debug logging
-    console.log('Savings calculation debug:', {
-      originalSavingsDataLength: savingsData.length,
-      filteredSavingsDataLength: filteredSavingsData.length,
-      hoursWithFlexUsage,
-      timestampRange: `${timestamps[0]} to ${timestamps[timestamps.length - 1]}`,
-      sampleFiltered: filteredSavingsData.slice(0, 3).map(item => ({
-        timestamp: item.timestamp,
-        usageKWh: item.usageKWh,
-        subscriptionQuantity: item.subscriptionQuantity,
-        hasFlexUsage: (item.usageKWh || 0) > (item.subscriptionQuantity || 0),
-        savings: item.savings,
-        touCost: item.touCost
-      })),
-      totalSavings,
-      totalTouCost
-    });
-    
-    return { totalSavings, totalTouCost };
-  };
+  // No local summary computations; summary now lives in WhatThisMeans
 
   const createChart = useCallback(() => {
     if (chartInstance.current) {
@@ -235,14 +155,20 @@ const SavingsChart = ({
             // Hide tooltip if no tooltip data or outside chart
             if (!context.tooltip || context.tooltip.opacity === 0) {
               tooltipEl.style.opacity = '0';
-              setHoveredData(null);
+              if (lastHoverRef.current !== null) {
+                lastHoverRef.current = null;
+                if (onHoverSummary) onHoverSummary(null);
+              }
               return;
             }
             
             const dataIndex = context.tooltip.dataPoints[0]?.dataIndex;
             if (dataIndex === undefined) {
               tooltipEl.style.opacity = '0';
-              setHoveredData(null);
+              if (lastHoverRef.current !== null) {
+                lastHoverRef.current = null;
+                if (onHoverSummary) onHoverSummary(null);
+              }
               return;
             }
             
@@ -251,7 +177,10 @@ const SavingsChart = ({
             const savingsItem = savingsMap[timestampStr];
             
             if (!savingsItem) {
-              setHoveredData(null);
+              if (lastHoverRef.current !== null) {
+                lastHoverRef.current = null;
+                if (onHoverSummary) onHoverSummary(null);
+              }
               tooltipEl.innerHTML = `
                 <div class="chart-tooltip">
                   <div class="chart-tooltip-header">${moment(timestamp).format('MMM D, YYYY hA')}</div>
@@ -284,13 +213,24 @@ const SavingsChart = ({
               const totalSavings = savingsItem.touCost - actualCost;
               
               // Set hovered data for the summary panel
-              setHoveredData({
+              const summaryObj = {
                 timestamp,
                 totalUsage: savingsItem.usageKWh,
                 baseRateOnlyCost: savingsItem.touCost,
                 actualCost,
                 totalSavings
-              });
+              };
+              // Only notify parent if summary changed to prevent re-render churn
+              const prev = lastHoverRef.current;
+              const changed = !prev || prev.timestamp !== summaryObj.timestamp ||
+                prev.totalUsage !== summaryObj.totalUsage ||
+                prev.baseRateOnlyCost !== summaryObj.baseRateOnlyCost ||
+                prev.actualCost !== summaryObj.actualCost ||
+                prev.totalSavings !== summaryObj.totalSavings;
+              if (changed) {
+                lastHoverRef.current = summaryObj;
+                if (onHoverSummary) onHoverSummary(summaryObj);
+              }
               
               tooltipEl.innerHTML = `
                 <div class="chart-tooltip">
@@ -497,7 +437,7 @@ const SavingsChart = ({
       data: data,
       options: options
     });
-  }, [savingsData, timestamps, onBarSelect]);
+  }, [savingsData, timestamps]);
 
   useEffect(() => {
     console.log("SavingsChart useEffect - savingsData:", savingsData?.length || 0, "isLoading:", isLoading);
@@ -520,7 +460,6 @@ const SavingsChart = ({
   if (!timestamps || timestamps.length === 0) {
     return (
       <div className="graph-container baseline-usage-chart">
-        <h2>Usage Analysis: Base Rate vs. Flex Rate</h2>
         <div className="chart-placeholder">
           {isLoading ? (
             <div className="loading-placeholder">Loading pricing data...</div>
@@ -533,101 +472,9 @@ const SavingsChart = ({
       </div>
     );
   }
-
-
-  const { totalSavings, totalTouCost } = calculateTotalSavings();
-
   return (
-    <div className="graph-container baseline-usage-chart" style={{position: 'relative'}}>
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
-        <h2 style={{margin: 0}}>Usage Analysis: Base Rate vs. Flex Rate</h2>
-        <div style={{display: 'flex', gap: '12px', alignItems: 'stretch'}}>
-          {/* Detailed breakdown panel - always present but invisible when not hovering */}
-          <div style={{
-            padding: '10px 12px',
-            backgroundColor: hoveredData ? 'rgba(107, 114, 128, 0.1)' : 'transparent',
-            border: hoveredData ? '2px solid #6B7280' : '2px solid transparent',
-            borderRadius: '8px',
-            minWidth: '200px',
-            fontSize: '12px',
-            height: '120px', // Increased height to prevent cutoff
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            opacity: hoveredData ? 1 : 0,
-            transition: 'opacity 0.2s ease-in-out',
-            overflow: 'hidden'
-          }}>
-            {hoveredData && (
-              <>
-                <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#374151', lineHeight: '1.3' }}>
-                  {moment(hoveredData.timestamp).format('MMM D, hA')}
-                </div>
-                <div style={{ marginBottom: '3px', lineHeight: '1.3', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#6B7280' }}>Total Usage:</span>
-                  <span style={{ fontWeight: 'bold' }}>{formatUsage(hoveredData.totalUsage)}</span>
-                </div>
-                <div style={{ marginBottom: '3px', lineHeight: '1.3', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#6B7280' }}>Base Rate only:</span>
-                  <span style={{ fontWeight: 'bold' }}>{formatCurrency(hoveredData.baseRateOnlyCost)}</span>
-                </div>
-                <div style={{ marginBottom: '3px', lineHeight: '1.3', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#6B7280' }}>Actual with Flex:</span>
-                  <span style={{ fontWeight: 'bold' }}>{formatCurrency(hoveredData.actualCost)}</span>
-                </div>
-                <div style={{ marginBottom: '3px', lineHeight: '1.3', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: hoveredData.totalSavings >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
-                    {hoveredData.totalSavings >= 0 ? 'Savings:' : 'Additional Cost:'}
-                  </span>
-                  <span style={{ fontWeight: 'bold', color: hoveredData.totalSavings >= 0 ? '#10B981' : '#EF4444' }}>
-                    {formatCurrency(Math.abs(hoveredData.totalSavings))}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-          
-          {/* Total Savings component */}
-          <div style={{
-            padding: '12px 16px',
-            backgroundColor: totalSavings >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-            border: `2px solid ${totalSavings >= 0 ? '#10B981' : '#EF4444'}`,
-            borderRadius: '8px',
-            textAlign: 'center',
-            minWidth: '200px',
-            height: '120px', // Increased height to match breakdown panel
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center'
-          }}>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: totalSavings >= 0 ? '#10B981' : '#EF4444',
-              lineHeight: '1.2'
-            }}>
-              {totalSavings >= 0 ? '+' : ''}{formatCurrency(totalSavings)}
-            </div>
-            <div style={{
-              fontSize: '12px',
-              color: '#666',
-              marginTop: '4px'
-            }}>
-              Total Savings from Flex Rate
-            </div>
-            <div style={{
-              fontSize: '11px',
-              color: '#888',
-              marginTop: '2px'
-            }}>
-              {getTimeframeString()}
-            </div>
-          </div>
-        </div>
-      </div>
-      
+    <div className="graph-container baseline-usage-chart" style={{position: 'relative'}}>      
       <canvas ref={chartRef}></canvas>
-      
       <div id="savings-chart-tooltip" ref={tooltipRef}></div>
     </div>
   );

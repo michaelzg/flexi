@@ -7,7 +7,8 @@ import WhatThisMeans from './WhatThisMeans';
 import { fetchPricingData } from '../utils/apiService';
 import { 
   calculateSubscriptionQuantities, 
-  calculateSavingsForPeriods 
+  calculateSavingsForPeriods,
+  getSubscriptionQuantity
 } from '../utils/rateCalculator';
 import '../styles/main.css';
 
@@ -29,6 +30,7 @@ const App = () => {
   const [selectedTimestamp, setSelectedTimestamp] = useState(null);
   const [savingsData, setSavingsData] = useState([]);
   const [subscriptionQuantities, setSubscriptionQuantities] = useState({});
+  const [hoverSummary, setHoverSummary] = useState(null);
 
   // Initialize with today's date and 2 days from now on component mount
   useEffect(() => {
@@ -155,7 +157,7 @@ const App = () => {
   }, [currentUsageData, chartData, subscriptionQuantities]);
   
   // Handle bar selection from charts
-  const handleBarSelect = (timestamp, usage, price) => {
+  const handleBarSelect = useCallback((timestamp, usage, price) => {
     if (timestamp && price !== undefined) {
       // Store the selected timestamp for visual highlighting
       setSelectedTimestamp(timestamp);
@@ -204,20 +206,30 @@ const App = () => {
         newSelectedData.usage = 0;
       }
       
-      // Try to find subscription quantity from savings data for this timestamp
-      if (savingsData.length > 0) {
-        const savingsItem = savingsData.find(item => item.timestamp === timestamp);
-        if (savingsItem) {
-          newSelectedData.subscriptionQuantity = savingsItem.subscriptionQuantity;
-        }
+      // Always compute subscription quantity using our helper for the selected time
+      if (Object.keys(subscriptionQuantities).length > 0) {
+        newSelectedData.subscriptionQuantity = getSubscriptionQuantity(timestamp, subscriptionQuantities);
+      } else {
+        newSelectedData.subscriptionQuantity = 0;
       }
-      
-      // If no subscription quantity found, try to get it from subscriptionQuantities
-      if (!newSelectedData.subscriptionQuantity && Object.keys(subscriptionQuantities).length > 0) {
-        const pastTimestamp = new Date(timestamp);
-        pastTimestamp.setFullYear(pastTimestamp.getFullYear() - 1);
-        const hour = pastTimestamp.getHours();
-        newSelectedData.subscriptionQuantity = subscriptionQuantities[hour] || 0;
+
+      // If price wasn't provided (e.g., clicked on usage chart), derive it from pricing data
+      if (newSelectedData.price === null || newSelectedData.price === undefined) {
+        const idx = chartData.timestamps.findIndex(ts => new Date(ts).getTime() === new Date(timestamp).getTime());
+        if (idx !== -1 && chartData.prices[idx] !== undefined) {
+          newSelectedData.price = chartData.prices[idx];
+        } else if (chartData.timestamps.length > 0) {
+          // fallback to nearest by absolute time
+          let nearestIndex = 0;
+          let nearestDiff = Math.abs(new Date(chartData.timestamps[0]).getTime() - new Date(timestamp).getTime());
+          for (let i = 1; i < chartData.timestamps.length; i++) {
+            const diff = Math.abs(new Date(chartData.timestamps[i]).getTime() - new Date(timestamp).getTime());
+            if (diff < nearestDiff) { nearestDiff = diff; nearestIndex = i; }
+          }
+          newSelectedData.price = chartData.prices[nearestIndex];
+        } else {
+          newSelectedData.price = 0;
+        }
       }
       
       // Always update with the data we have
@@ -228,7 +240,7 @@ const App = () => {
       setSelectedData(null);
       setSelectedTimestamp(null);
     }
-  };
+  }, [currentUsageData, savingsData, subscriptionQuantities, chartData.timestamps, chartData.prices]);
 
   return (
     <div className="container">
@@ -252,7 +264,12 @@ const App = () => {
         </div>
       )}
       
-      <WhatThisMeans selectedData={selectedData} />
+      <WhatThisMeans 
+        selectedData={selectedData} 
+        savingsData={savingsData} 
+        timestamps={chartData.timestamps}
+        hoverSummary={hoverSummary}
+      />
       
       <Chart 
         timestamps={chartData.timestamps} 
@@ -269,6 +286,7 @@ const App = () => {
         onBarSelect={handleBarSelect}
         selectedTimestamp={selectedTimestamp}
         isLoading={isLoading}
+        onHoverSummary={setHoverSummary}
       />
 
       {historicalUsageData.length > 0 && (
