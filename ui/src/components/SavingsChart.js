@@ -1,13 +1,12 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { Chart as ChartJS, registerables } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import 'chartjs-adapter-moment';
 import moment from 'moment';
 import { formatCurrency, formatUsage } from '../utils/rateCalculator';
 import { generateDayBackgrounds } from '../utils/chartUtils';
 
-ChartJS.register(...registerables, ChartDataLabels, annotationPlugin);
+ChartJS.register(...registerables, annotationPlugin);
 
 const SavingsChart = ({ 
   savingsData, 
@@ -143,8 +142,9 @@ const SavingsChart = ({
           display: true,
           position: 'top'
         },
+        // Ensure datalabels are disabled (plugin is registered globally by price chart)
         datalabels: {
-          display: false, // Disable data labels for cleaner hourly view
+          display: false
         },
         tooltip: {
           enabled: false,

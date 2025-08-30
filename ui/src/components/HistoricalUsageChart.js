@@ -1,13 +1,12 @@
-import React, { useEffect, useRef, useState, Fragment } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Chart as ChartJS, registerables } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import 'chartjs-adapter-moment';
 import moment from 'moment';
 import { generateDayBackgrounds, externalTooltipHandler } from '../utils/chartUtils';
 
 // Register Chart.js plugins
-ChartJS.register(...registerables, ChartDataLabels, annotationPlugin);
+ChartJS.register(...registerables, annotationPlugin);
 
 const HistoricalUsageChart = ({ usageData, timestamps, prices, isLoading, onBarSelect, selectedTimestamp }) => {
   const chartRef = useRef(null);
@@ -350,8 +349,9 @@ const HistoricalUsageChart = ({ usageData, timestamps, prices, isLoading, onBarS
               ...selectionHighlight
             }
           },
+          // Ensure datalabels are disabled (plugin is registered globally by price chart)
           datalabels: {
-            display: false // Disable data labels
+            display: false
           }
         },
         animation: {

@@ -281,24 +281,3 @@ export const formatCurrency = (amount) => {
 export const formatUsage = (kWh) => {
   return `${kWh.toFixed(2)} kWh`;
 };
-
-// Helper function to get period description
-export const getPeriodDescription = (timestamp) => {
-  const date = new Date(timestamp);
-  const hour = date.getHours();
-  const season = getSeason(date);
-  const period = getTOUPeriod(hour);
-  
-  const periodNames = {
-    peak: 'Peak',
-    partialPeak: 'Partial-Peak',
-    offPeak: 'Off-Peak'
-  };
-  
-  const seasonNames = {
-    summer: 'Summer',
-    winter: 'Winter'
-  };
-  
-  return `${seasonNames[season]} ${periodNames[period]}`;
-};
